@@ -1,0 +1,8 @@
+# Copyright (c) 2020 Pete Johanson
+# SPDX-License-Identifier: MIT
+
+config SHIELD_GLOVE80_LEFT
+	def_bool $(shields_list_contains,glove80_left)
+
+config SHIELD_GLOVE80_RIGHT
+	def_bool $(shields_list_contains,glove80_right)

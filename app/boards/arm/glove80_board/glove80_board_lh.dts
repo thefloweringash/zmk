@@ -1,0 +1,32 @@
+/*
+ * Copyright (c) 2021 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/dts-v1/;
+#include "glove80_board_lh.dtsi"
+
+
+/ {
+	ext-power {
+		compatible = "zmk,ext-power-generic";
+		label = "EXT_POWER";
+		control-gpios = <&gpio0 30 GPIO_ACTIVE_HIGH>; /**[SC] WS2812_CE */
+		init-delay-ms = <10>;
+	};
+
+	vbatt-divider {
+		compatible = "zmk,battery-voltage-divider";
+		label = "BATTERY"; 
+		io-channels = <&adc 5>; 
+		output-ohms = <820000>; /** Double check that this is right */
+		full-ohms = <(1500000 + 820000)>; 
+	};	
+
+	vbatt0-vddh {
+		compatible = "zmk,battery-nrf-vddh";
+		label = "BATTERY-VDDH"; 
+	};
+
+};
