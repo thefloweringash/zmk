@@ -58,12 +58,5 @@ multiStdenv.mkDerivation {
   ZEPHYR_TOOLCHAIN_VARIANT = "gnuarmemb";
   GNUARMEMB_TOOLCHAIN_PATH = gcc-arm-embedded;
 
-  shellHook = ''
-    if [ ! -d "zephyr" ]; then
-      west init -l app/
-      west update
-      west zephyr-export
-    fi
-    source zephyr/zephyr-env.sh
-  '';
+  shellHook = "if [ ! -d \"zephyr\" ]; then west init -l app/ ; west update; west zephyr-export; fi; source zephyr/zephyr-env.sh";
 }
