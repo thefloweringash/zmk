@@ -6,29 +6,49 @@
 
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/ext_power.h>
+
+#define HYPER LC(LS(LG(LALT)))
+
+// layers
+#define DEFAULT 0
+#define LOWER 1
 
 / {
     keymap {
-        compatible = "zmk,keymap";
+      compatible = "zmk,keymap";
 
-        default_layer {
-// ---------------------------------------------------------------------------------------------------------------------------------
-// |  F1   |  F2 |  F3 |  F4  |  F5  | n/a  |  BKSP   | | SPACE   | n/a  |  F6   |  F7   |  F8  |   F9  |  F10 |
-// |  =    |  1  |  2  |  3   |  4   |  5   |  DEL    | | ENTER   |  6   |   7   |   8   |  9   |   0   |   -  |
-// |  TAB  |  Q  |  W  |  E   |  R   |  T   | L ALT   | | R ALT   |  Y   |   U   |   I   |  O   |   P   |   \  |
-// |  ESC  |  A  |  S  |  D   |  F   |  G   | L SHIFT | | R SHIFT |  H   |   J   |   K   |  L   |   ;   |   '  |
-// |   `   |  Z  |  X  |  C   |  V   |  B   | L CTRL  | | R CTRL  |  N   |   M   |   ,   |  .   |   /   | PGUP |
-// | MAGIC | HOME| END | LEFT | RIGHT| n/a  |  LAYER  | |  WIN    | n/a  |  UP   | DOWN  |  [   |   ]   | PGDN |
+      default_layer {
+        // ---------------------------------------------------------------------------------------------------------------------------------
+        // |  F1   |  F2 |  F3 |  F4  |  F5  | n/a  | LSHFT | | RSHFT | n/a  |  F6   |  F7   |  F8  |   F9  |  F10 |
+        // |  =    |  1  |  2  |  3   |  4   |  5   | LCTRL | | RCTRL |  6   |   7   |   8   |  9   |   0   |   -  |
+        // |  TAB  |  Q  |  W  |  E   |  R   |  T   | LOWER | | LGUI  |  Y   |   U   |   I   |  O   |   P   |   \  |
+        // |  ESC  |  A  |  S  |  D   |  F   |  G   | BSPC  | | SPACE |  H   |   J   |   K   |  L   |   ;   |   '  |
+        // |   `   |  Z  |  X  |  C   |  V   |  B   | DEL   | | RET   |  N   |   M   |   ,   |  .   |   /   | PGUP |
+        // | MAGIC | HOME| END | LEFT | RIGHT| n/a  | LALT  | | RALT  | n/a  |  UP   | DOWN  |  [   |   ]   | PGDN |
 
-// [SC] MAGIC and LAYER are currently mapped to F11 - these will be fixed later
-            bindings = <
-    &kp F1      &kp F2      &kp F3      &kp F4      &kp F5      &none   &kp BSPC    &kp SPACE   &none   &kp F6  &kp F7      &kp F8      &kp F9      &kp F10
-    &kp EQUAL   &kp N1      &kp N2      &kp N3      &kp N4      &kp N5  &kp DEL     &kp RET     &kp N6  &kp N7  &kp N8      &kp N9      &kp N0      &kp MINUS
-    &kp TAB     &kp Q       &kp W       &kp E       &kp R       &kp T   &kp LALT    &kp RALT    &kp Y   &kp U   &kp I       &kp O       &kp P       &kp BSLH
-    &kp ESC     &kp A       &kp S       &kp D       &kp F       &kp G   &kp LSHFT   &kp RSHFT   &kp H   &kp J   &kp K       &kp L       &kp SEMI    &kp SQT
-    &kp GRAVE   &kp Z       &kp X       &kp C       &kp V       &kp B   &kp LCTRL   &kp RCTRL   &kp N   &kp M   &kp COMMA   &kp DOT     &kp FSLH    &kp PG_UP
-    &kp F11     &kp HOME    &kp END     &kp LEFT    &kp RIGHT   &none   &kp F11     &kp RGUI    &none   &kp UP  &kp DOWN    &kp LBKT    &kp RBKT    &kp PG_DN
-            >;
-        };
+
+        // MAGIC is currently bound to the same as LAYER - these will be fixed later
+        bindings = <
+          &kp F1      &kp F2      &kp F3      &kp F4      &kp F5      &none   &kp LSHFT   &kp RSHFT   &none   &kp F6  &kp F7      &kp F8      &kp F9      &kp F10
+          &kp EQUAL   &kp N1      &kp N2      &kp N3      &kp N4      &kp N5  &kp LCTRL   &kp RCTRL   &kp N6  &kp N7  &kp N8      &kp N9      &kp N0      &kp MINUS
+          &kp TAB     &kp Q       &kp W       &kp E       &kp R       &kp T   &mo LOWER   &kp LGUI    &kp Y   &kp U   &kp I       &kp O       &kp P       &kp BSLH
+          &kp ESC     &kp A       &kp S       &kp D       &kp F       &kp G   &kp BSPC    &kp SPACE   &kp H   &kp J   &kp K       &kp L       &kp SEMI    &kp SQT
+          &kp GRAVE   &kp Z       &kp X       &kp C       &kp V       &kp B   &kp DEL     &kp RET     &kp N   &kp M   &kp COMMA   &kp DOT     &kp FSLH    &kp PG_UP
+          &mo LOWER   &kp HOME    &kp END     &kp LEFT    &kp RIGHT   &none   &kp LALT    &kp RALT    &none   &kp UP  &kp DOWN    &kp LBKT    &kp RBKT    &kp PG_DN
+          >;
+      };
+
+      lower_layer {
+        bindings = <
+          &bt BT_SEL 0     &bt BT_SEL 1      &bt BT_SEL 2 &bt BT_SEL 3 &bt BT_SEL 4 &none          &none        &none        &none        &none        &none        &none        &none        &none
+          &bt BT_CLR       &bt BT_CLR        &none        &none        &none        &none          &kp HYPER    &none        &none        &none        &none        &none        &none        &none
+          &bootloader      &bootloader       &none        &none        &none        &kp K_VOL_UP   &none        &none        &none        &none        &none        &none        &none        &bootloader
+          &reset           &reset            &none        &none        &none        &kp K_VOL_DN   &none        &none        &none        &none        &none        &none        &none        &reset
+          &ext_power EP_ON &ext_power EP_OFF &none        &none        &none        &kp K_MUTE     &none        &none        &none        &none        &none        &none        &none        &none
+          &none            &kp CAPS          &kp INS      &none        &none        &none          &none        &none        &none        &none        &none        &none        &none        &none
+          >;
+      };
     };
 };
