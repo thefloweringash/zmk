@@ -21,12 +21,12 @@
 
       default_layer {
         // ---------------------------------------------------------------------------------------------------------------------------------
-        // |  F1   |  F2 |  F3 |  F4  |  F5  | n/a  |  BKSP   | | SPACE   | n/a  |  F6   |  F7   |  F8  |   F9  |  F10 |
-        // |  =    |  1  |  2  |  3   |  4   |  5   |  DEL    | | ENTER   |  6   |   7   |   8   |  9   |   0   |   -  |
-        // |  TAB  |  Q  |  W  |  E   |  R   |  T   | L ALT   | | R ALT   |  Y   |   U   |   I   |  O   |   P   |   \  |
-        // |  ESC  |  A  |  S  |  D   |  F   |  G   | L SHIFT | | R SHIFT |  H   |   J   |   K   |  L   |   ;   |   '  |
-        // |   `   |  Z  |  X  |  C   |  V   |  B   | L CTRL  | | R CTRL  |  N   |   M   |   ,   |  .   |   /   | PGUP |
-        // | MAGIC | HOME| END | LEFT | RIGHT| n/a  |  LAYER  | |  WIN    | n/a  |  UP   | DOWN  |  [   |   ]   | PGDN |
+        // |  F1   |  F2 |  F3 |  F4  |  F5  | n/a  | LSHFT | | RSHFT | n/a  |  F6   |  F7   |  F8  |   F9  |  F10 |
+        // |  =    |  1  |  2  |  3   |  4   |  5   | LCTRL | | RCTRL |  6   |   7   |   8   |  9   |   0   |   -  |
+        // |  TAB  |  Q  |  W  |  E   |  R   |  T   | LOWER | | LGUI  |  Y   |   U   |   I   |  O   |   P   |   \  |
+        // |  ESC  |  A  |  S  |  D   |  F   |  G   | BSPC  | | SPACE |  H   |   J   |   K   |  L   |   ;   |   '  |
+        // |   `   |  Z  |  X  |  C   |  V   |  B   | DEL   | | RET   |  N   |   M   |   ,   |  .   |   /   | PGUP |
+        // | MAGIC | HOME| END | LEFT | RIGHT| n/a  | LALT  | | RALT  | n/a  |  UP   | DOWN  |  [   |   ]   | PGDN |
 
 
         // MAGIC is currently bound to the same as LAYER - these will be fixed later
