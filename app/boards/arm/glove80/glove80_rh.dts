@@ -6,7 +6,7 @@
 
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
-#include "glove80_board.dtsi"
+#include "glove80.dtsi"
 
 / {
 	model = "glove80_rh";
