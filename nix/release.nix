@@ -1,3 +1,12 @@
 { pkgs ? import <nixpkgs> {} }:
 
-pkgs.callPackage ./zephyr.nix {}
+let
+  inherit (pkgs) newScope;
+  inherit (pkgs.lib) makeScope;
+in
+
+makeScope newScope (self: with self; {
+  zephyr = callPackage ./zephyr.nix {};
+
+  zmk = callPackage ./zmk.nix {};
+})
