@@ -5,6 +5,10 @@ let
 in
 
 makeScope newScope (self: with self; {
+  # From scratch:
+  #  nix run -f . west -c west init -l app
+  #  nix run -f . west -c west update
+  #  nix run -f . update-manifest -c update-manifest > nix/manifest.json
   update-manifest = callPackage ./nix/update-manifest { };
 
   west = pkgs.python3Packages.west.overridePythonAttrs (old: rec {

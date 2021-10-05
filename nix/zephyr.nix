@@ -1,6 +1,6 @@
 { stdenv, lib, fetchgit }:
 let
-  manifestJSON = builtins.fromJSON (builtins.readFile ./manifest-hash.json);
+  manifestJSON = builtins.fromJSON (builtins.readFile ./manifest.json);
 
   projects = lib.listToAttrs (lib.forEach manifestJSON ({ name, revision, url, sha256, ... }@args: (
     lib.nameValuePair name {
