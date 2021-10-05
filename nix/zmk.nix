@@ -34,12 +34,11 @@ stdenv.mkDerivation {
       let relPath = lib.removePrefix (toString ./.. + "/") (toString path);
       in (lib.cleanSourceFilter path type) && ! (
         # Meta files
-        relPath == "nix" ||
+        relPath == "nix" || lib.hasSuffix ".nix" path ||
         # Transient state
         relPath == "build" || relPath == ".west" ||
         # Fetched by west
-        relPath == "modules" || relPath == "tools" || relPath == "zephyr" ||
-        lib.hasSuffix ".nix" path
+        relPath == "modules" || relPath == "tools" || relPath == "zephyr"
       );
     };
 

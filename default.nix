@@ -23,4 +23,9 @@ makeScope newScope (self: with self; {
   zephyr = callPackage ./nix/zephyr.nix { };
 
   zmk = callPackage ./nix/zmk.nix { };
+
+  zmk_right = zmk.override {
+    board = "glove80_board_rh";
+    shield = "glove80_right";
+  };
 })
