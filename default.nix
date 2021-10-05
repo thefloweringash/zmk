@@ -1,0 +1,22 @@
+{ pkgs ?  import <nixpkgs> {} }:
+let
+  inherit (pkgs) newScope;
+  inherit (pkgs.lib) makeScope;
+in
+
+makeScope newScope (self: with self; {
+  update-manifest = callPackage ./nix/update-manifest { };
+
+  west = pkgs.python3Packages.west.overridePythonAttrs (old: rec {
+    inherit (old) pname;
+    version = "0.9.0";
+    src = pkgs.python3Packages.fetchPypi {
+      inherit pname version;
+      sha256 = "1asgw3v3k77lvh4i1c3s0gncy2dn658py6256bzpjp1k35gs8mbg";
+    };
+  });
+
+  zephyr = callPackage ./nix/zephyr.nix { };
+
+  zmk = callPackage ./nix/zmk.nix { };
+})
