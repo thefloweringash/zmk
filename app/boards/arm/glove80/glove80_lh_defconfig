@@ -30,7 +30,7 @@ CONFIG_ZMK_RGB_UNDERGLOW_BRT_STEP=4
 
 # Turn on logging, and set ZMK logging to debug output
 # Only for debugging
-CONFIG_ZMK_USB_LOGGING=y
+CONFIG_ZMK_USB_LOGGING=n
 
 # Turn on debugging to disable optimization
-CONFIG_DEBUG=y
+CONFIG_DEBUG=n
