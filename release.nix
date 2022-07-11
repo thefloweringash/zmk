@@ -4,6 +4,7 @@ with pkgs;
 let
   zmkPkgs = (import ./default.nix { inherit pkgs; });
   lambda  = (import ./lambda { inherit pkgs; });
+  ccacheWrapper = pkgs.callPackage ./nix/ccache.nix {};
 
   nix-utils = pkgs.fetchFromGitHub {
     owner = "iknow";
@@ -39,26 +40,63 @@ let
 
   depsLayer = {
     name = "deps-layer";
+    path = [ pkgs.ccache ];
     includes = zmk.buildInputs ++ zmk.nativeBuildInputs ++ zmk.zephyrModuleDeps;
   };
 
-  zmkCompileScript = writeShellScriptBin "compileZmk" ''
+  zmkCompileScript = let
+    zmk' = zmk.override {
+      gcc-arm-embedded = ccacheWrapper.override {
+        unwrappedCC = gcc-arm-embedded;
+      };
+    };
+  in writeShellScriptBin "compileZmk" ''
     set -eo pipefail
     if [ ! -f "$1" ]; then
       echo "Usage: compileZmk [file.keymap]" >&2
       exit 1
     fi
     KEYMAP="$(${pkgs.busybox}/bin/realpath $1)"
-    export PATH=${lib.makeBinPath (with pkgs; zmk.nativeBuildInputs)}:$PATH
+    export PATH=${lib.makeBinPath (with pkgs; zmk'.nativeBuildInputs)}:$PATH
     export CMAKE_PREFIX_PATH=${zephyr}
-    cmake -G Ninja -S ${zmk.src}/app ${lib.escapeShellArgs zmk.cmakeFlags} "-DUSER_CACHE_DIR=/tmp/.cache" "-DKEYMAP_FILE=$KEYMAP"
+
+    export CCACHE_BASEDIR=$PWD
+    export CCACHE_NOHASHDIR=t
+    export CCACHE_COMPILERCHECK=none
+
+    cmake -G Ninja -S ${zmk'.src}/app ${lib.escapeShellArgs zmk'.cmakeFlags} "-DUSER_CACHE_DIR=/tmp/.cache" "-DKEYMAP_FILE=$KEYMAP"
     ninja
+  '';
+
+  ccacheCache = runCommandNoCC "ccache-cache" {
+    nativeBuildInputs = [ zmkCompileScript ];
+  } ''
+    export CCACHE_DIR=$out
+
+    export CCACHE_BASEDIR=$PWD
+    export CCACHE_NOHASHDIR=t
+    export CCACHE_COMPILERCHECK=none
+
+    compileZmk ${zmk.src}/app/boards/arm/glove80/glove80.keymap
   '';
 
   appLayer = {
     name = "app-layer";
-    path = [ zmkCompileScript ];
-    entries = ociTools.makeUserDirectoryEntries accounts "deploy" [
+    path = [ zmkCompileScript doit ];
+    entries = {
+      "/ccache" = {
+        type = "directory";
+        mode = "u=rwX,go=u-w";
+        uid = accounts.users.deploy.uid;
+        gid = accounts.groups.deploy.gid;
+        sources = [{
+          path = ccacheCache;
+          mode = "u=rwX,go=u-w";
+          uid = accounts.users.deploy.uid;
+          gid = accounts.groups.deploy.gid;
+        }];
+      };
+    } // ociTools.makeUserDirectoryEntries accounts "deploy" [
       "/data"
     ];
   };
@@ -77,9 +115,9 @@ let
       User = "deploy";
       WorkingDir = "/data";
       Cmd = [ "${lambdaEntrypoint}/bin/lambdaEntrypoint" ];
+      Env = [ "CCACHE_DIR=/ccache" ];
     };
-
   };
 in {
-  inherit lambdaImage zmkCompileScript lambdaEntrypoint;
+  inherit lambdaImage zmkCompileScript lambdaEntrypoint ccacheCache;
 }
