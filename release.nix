@@ -81,33 +81,34 @@ let
     nativeBuildInputs = [ zmkCompileScript ];
   } ''
     export CCACHE_DIR=$out
+
+    mkdir /tmp/build
+    cd /tmp/build
+
     compileZmk ${zmk.src}/app/boards/arm/glove80/glove80.keymap
   '';
 
   appLayer = {
     name = "app-layer";
-    path = [ zmkCompileScript ];
-    entries = ociTools.makeFilesystem {
-      tmp = true;
-    } // {
-      "/tmp/ccache" = {
-        type = "directory";
-        mode = "u=rwX,go=u-w";
-        sources = [{
-          path = ccacheCache;
-          mode = "u=rwX,go=u-w";
-        }];
-      };
-      "/tmp/build" = {
-        type = "directory";
-        mode = "u=rwX,go=u-w";
-      };
-    } // ociTools.makeUserDirectoryEntries accounts "deploy" [
-      "/data"
-    ];
+    path = [ startLambda zmkCompileScript ];
   };
 
-  lambdaEntrypoint = pkgs.writeShellScriptBin "lambdaEntrypoint" ''
+  entrypoint = pkgs.writeShellScriptBin "entrypoint" ''
+    set -euo pipefail
+
+    if [ ! -d "$CCACHE_DIR" ]; then
+      cp -r ${ccacheCache} "$CCACHE_DIR"
+      chmod -R u=rwX,go=u-w "$CCACHE_DIR"
+    fi
+
+    if [ ! -d /tmp/build ]; then
+      mkdir /tmp/build
+    fi
+
+    exec "$@"
+  '';
+
+  startLambda = pkgs.writeShellScriptBin "startLambda" ''
     set -euo pipefail
     export PATH=${lib.makeBinPath [ zmkCompileScript ]}:$PATH
     cd ${lambda.source}
@@ -119,11 +120,12 @@ let
     layers = [ baseLayer depsLayer appLayer ];
     config = {
       User = "deploy";
-      WorkingDir = "/tmp/build";
-      Cmd = [ "${lambdaEntrypoint}/bin/lambdaEntrypoint" ];
+      WorkingDir = "/tmp";
+      Entrypoint = [ "${entrypoint}/bin/entrypoint" ];
+      Cmd = [ "startLambda" ];
       Env = [ "CCACHE_DIR=/tmp/ccache" ];
     };
   };
 in {
-  inherit lambdaImage zmkCompileScript lambdaEntrypoint ccacheCache;
+  inherit lambdaImage zmkCompileScript ccacheCache;
 }
