@@ -51,21 +51,30 @@ let
       };
     };
   in pkgs.writeShellScriptBin "compileZmk" ''
+    whoami
+    id
+    ls -l / /ccache
+    ls -ln / /ccache
+
     set -eo pipefail
     if [ ! -f "$1" ]; then
       echo "Usage: compileZmk [file.keymap]" >&2
       exit 1
     fi
     KEYMAP="$(${pkgs.busybox}/bin/realpath $1)"
-    export PATH=${lib.makeBinPath (with pkgs; zmk'.nativeBuildInputs)}:$PATH
+    export PATH=${lib.makeBinPath (with pkgs; zmk'.nativeBuildInputs ++ [ ccache ])}:$PATH
     export CMAKE_PREFIX_PATH=${zephyr}
 
     export CCACHE_BASEDIR=$PWD
     export CCACHE_NOHASHDIR=t
     export CCACHE_COMPILERCHECK=none
 
+    ccache -z
+
     cmake -G Ninja -S ${zmk'.src}/app ${lib.escapeShellArgs zmk'.cmakeFlags} "-DUSER_CACHE_DIR=/tmp/.cache" "-DKEYMAP_FILE=$KEYMAP"
     ninja
+
+    ccache -s
   '';
 
   ccacheCache = pkgs.runCommandNoCC "ccache-cache" {
@@ -78,18 +87,20 @@ let
   appLayer = {
     name = "app-layer";
     path = [ zmkCompileScript ];
-    entries = {
-      "/ccache" = {
+    entries = ociTools.makeFilesystem {
+      tmp = true;
+    } // {
+      "/tmp/ccache" = {
         type = "directory";
         mode = "u=rwX,go=u-w";
-        uid = accounts.users.deploy.uid;
-        gid = accounts.groups.deploy.gid;
         sources = [{
           path = ccacheCache;
           mode = "u=rwX,go=u-w";
-          uid = accounts.users.deploy.uid;
-          gid = accounts.groups.deploy.gid;
         }];
+      };
+      "/tmp/build" = {
+        type = "directory";
+        mode = "u=rwX,go=u-w";
       };
     } // ociTools.makeUserDirectoryEntries accounts "deploy" [
       "/data"
@@ -108,9 +119,9 @@ let
     layers = [ baseLayer depsLayer appLayer ];
     config = {
       User = "deploy";
-      WorkingDir = "/data";
+      WorkingDir = "/tmp/build";
       Cmd = [ "${lambdaEntrypoint}/bin/lambdaEntrypoint" ];
-      Env = [ "CCACHE_DIR=/ccache" ];
+      Env = [ "CCACHE_DIR=/tmp/ccache" ];
     };
   };
 in {
