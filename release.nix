@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 
-with pkgs;
 let
+  lib = pkgs.lib;
   zmkPkgs = (import ./default.nix { inherit pkgs; });
   lambda  = (import ./lambda { inherit pkgs; });
   ccacheWrapper = pkgs.callPackage ./nix/ccache.nix {};
@@ -47,10 +47,10 @@ let
   zmkCompileScript = let
     zmk' = zmk.override {
       gcc-arm-embedded = ccacheWrapper.override {
-        unwrappedCC = gcc-arm-embedded;
+        unwrappedCC = pkgs.gcc-arm-embedded;
       };
     };
-  in writeShellScriptBin "compileZmk" ''
+  in pkgs.writeShellScriptBin "compileZmk" ''
     set -eo pipefail
     if [ ! -f "$1" ]; then
       echo "Usage: compileZmk [file.keymap]" >&2
@@ -68,21 +68,16 @@ let
     ninja
   '';
 
-  ccacheCache = runCommandNoCC "ccache-cache" {
+  ccacheCache = pkgs.runCommandNoCC "ccache-cache" {
     nativeBuildInputs = [ zmkCompileScript ];
   } ''
     export CCACHE_DIR=$out
-
-    export CCACHE_BASEDIR=$PWD
-    export CCACHE_NOHASHDIR=t
-    export CCACHE_COMPILERCHECK=none
-
     compileZmk ${zmk.src}/app/boards/arm/glove80/glove80.keymap
   '';
 
   appLayer = {
     name = "app-layer";
-    path = [ zmkCompileScript doit ];
+    path = [ zmkCompileScript ];
     entries = {
       "/ccache" = {
         type = "directory";
@@ -101,7 +96,7 @@ let
     ];
   };
 
-  lambdaEntrypoint = writeShellScriptBin "lambdaEntrypoint" ''
+  lambdaEntrypoint = pkgs.writeShellScriptBin "lambdaEntrypoint" ''
     set -euo pipefail
     export PATH=${lib.makeBinPath [ zmkCompileScript ]}:$PATH
     cd ${lambda.source}
