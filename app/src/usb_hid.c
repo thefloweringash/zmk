@@ -62,10 +62,10 @@ static int get_report_cb(const struct device *dev,
 
     switch (setup->wValue & HID_GET_REPORT_ID_MASK) {
         case HID_REPORT_ID_KEYBOARD:
-            zmk_hid_get_keyboard_report(hid_protocol, true, data, len);
+            *data = zmk_hid_get_keyboard_report(hid_protocol, len);
             break;
         case HID_REPORT_ID_CONSUMER:
-            zmk_hid_get_consumer_report(true, data, len);
+            *data = zmk_hid_get_consumer_report(len);
             break;
         default:
             LOG_ERR("Invalid report ID %d requested", setup->wValue & HID_GET_REPORT_ID_MASK);

@@ -188,14 +188,9 @@ int zmk_hid_press(uint32_t usage);
 int zmk_hid_release(uint32_t usage);
 bool zmk_hid_is_pressed(uint32_t usage);
 
-void zmk_hid_get_keyboard_report(uint8_t proto, bool include_report_id,
-                                 uint8_t **data, size_t *len);
-
+uint8_t *zmk_hid_get_keyboard_report(uint8_t proto, size_t *len);
 struct zmk_hid_keyboard_report_body *zmk_hid_get_keyboard_report_body();
 
-
-void zmk_hid_get_consumer_report(bool include_report_id,
-                                 uint8_t **data, size_t *len);
-
+uint8_t *zmk_hid_get_consumer_report(size_t *len);
 struct zmk_hid_consumer_report_body *zmk_hid_get_consumer_report_body();
 

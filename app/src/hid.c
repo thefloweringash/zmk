@@ -328,21 +328,18 @@ bool zmk_hid_is_pressed(uint32_t usage) {
     return false;
 }
 
-void zmk_hid_get_keyboard_report(uint8_t proto, bool include_report_id,
-                                 uint8_t **data, size_t *len) {
+uint8_t *zmk_hid_get_keyboard_report(uint8_t proto, size_t *len) {
     if (proto == HID_PROTOCOL_REPORT) {
-        if (include_report_id) {
-            *data = (uint8_t*)&keyboard_report;
+        if (len) {
             *len = sizeof(struct zmk_hid_keyboard_report);
-        } else {
-            *data = (uint8_t*)&keyboard_report.body;
-            *len = sizeof(struct zmk_hid_keyboard_report_body);
         }
-        return;
+        return (uint8_t*)&keyboard_report;
     }
 #if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
-    *data = get_boot_report();
-    *len = sizeof(zmk_hid_boot_report_t);
+    if (len) {
+        *len = sizeof(zmk_hid_boot_report_t);
+    }
+    return get_boot_report();
 #endif
 }
 
@@ -350,15 +347,11 @@ struct zmk_hid_keyboard_report_body *zmk_hid_get_keyboard_report_body() {
     return &keyboard_report.body;
 }
 
-void zmk_hid_get_consumer_report(bool include_report_id,
-                                 uint8_t **data, size_t *len) {
-    if (include_report_id) {
-        *data = (uint8_t*)&consumer_report;
+uint8_t *zmk_hid_get_consumer_report(size_t *len) {
+    if (len) {
         *len = sizeof(struct zmk_hid_consumer_report);
-    } else {
-        *data = (uint8_t*)&consumer_report.body;
-        *len = sizeof(struct zmk_hid_consumer_report_body);
     }
+    return (uint8_t*)&consumer_report;
 }
 
 struct zmk_hid_consumer_report_body *zmk_hid_get_consumer_report_body() {

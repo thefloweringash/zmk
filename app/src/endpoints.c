@@ -75,9 +75,8 @@ static int send_keyboard_report() {
     switch (current_endpoint) {
 #if IS_ENABLED(CONFIG_ZMK_USB)
     case ZMK_ENDPOINT_USB: {
-        uint8_t *report;
         size_t report_length;
-        zmk_hid_get_keyboard_report(zmk_usb_hid_get_protocol(), true, &report, &report_length);
+        uint8_t *report = zmk_hid_get_keyboard_report(zmk_usb_hid_get_protocol(), &report_length);
         int err = zmk_usb_hid_send_report(report, report_length);
         if (err) {
             LOG_ERR("FAILED TO SEND OVER USB: %d", err);
@@ -112,10 +111,8 @@ static int send_consumer_report() {
             return -ENOTSUP;
         }
 #endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
-        uint8_t *report;
         size_t report_length;
-
-        zmk_hid_get_consumer_report(true, &report, &report_length);
+        uint8_t *report = zmk_hid_get_consumer_report(&report_length);
         int err = zmk_usb_hid_send_report(report, report_length);
         if (err) {
             LOG_ERR("FAILED TO SEND OVER USB: %d", err);
