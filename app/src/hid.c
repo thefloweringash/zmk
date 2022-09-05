@@ -16,6 +16,16 @@ static struct zmk_hid_keyboard_report keyboard_report = {
 
 static struct zmk_hid_consumer_report consumer_report = {.report_id = HID_REPORT_ID_CONSUMER,
                                                          .body = {.keys = {0}}};
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+#if !IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_HKRO) || CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE != HID_BOOT_KEY_LEN
+static zmk_hid_boot_report_t boot_report = {
+    .modifiers = 0,
+    ._reserved = 0,
+    .keys = {0}
+};
+#endif
+static uint8_t keys_held = 0;
+#endif
 
 // Keep track of how often a modifier was pressed.
 // Only release the modifier if the count is 0.
@@ -83,15 +93,63 @@ int zmk_hid_unregister_mods(zmk_mod_flags_t modifiers) {
     return ret;
 }
 
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+
+static zmk_hid_boot_report_t error_report = {
+    .modifiers = 0,
+    ._reserved = 0,
+    .keys = {
+        HID_ERROR_ROLLOVER, HID_ERROR_ROLLOVER, HID_ERROR_ROLLOVER,
+        HID_ERROR_ROLLOVER, HID_ERROR_ROLLOVER, HID_ERROR_ROLLOVER
+    }
+};
+
+#define HID_CHECK_ROLLOVER_ERROR() \
+    if (keys_held > HID_BOOT_KEY_LEN) { \
+        error_report.modifiers = keyboard_report.body.modifiers; \
+        return &error_report; \
+    }
+
+#endif
+
 #if IS_ENABLED(CONFIG_ZMK_HID_REPORT_TYPE_NKRO)
 
 #define TOGGLE_KEYBOARD(code, val) WRITE_BIT(keyboard_report.body.keys[code / 8], code % 8, val)
+
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+static zmk_hid_boot_report_t *get_boot_report() {
+    HID_CHECK_ROLLOVER_ERROR();
+
+    boot_report.modifiers = keyboard_report.body.modifiers;
+    memset(&boot_report.keys, 0, HID_BOOT_KEY_LEN);
+    int ix = 0;
+    uint8_t base_code = 0;
+    for (int i = 0; i < (ZMK_HID_KEYBOARD_NKRO_MAX_USAGE + 1) / 8; ++i) {
+        if (ix == keys_held) {
+            break;
+        }
+        if (!keyboard_report.body.keys[i]) {
+            continue;
+        }
+        base_code = i * 8;
+        for (int j = 0; j < 8; ++j) {
+            if (keyboard_report.body.keys[i] & BIT(j)) {
+                boot_report.keys[ix++] = base_code + j;
+            }
+        }
+    }
+    return &boot_report;
+}
+#endif
 
 static inline int select_keyboard_usage(zmk_key_t usage) {
     if (usage > ZMK_HID_KEYBOARD_NKRO_MAX_USAGE) {
         return -EINVAL;
     }
     TOGGLE_KEYBOARD(usage, 1);
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+    ++keys_held;
+#endif
     return 0;
 }
 
@@ -100,6 +158,9 @@ static inline int deselect_keyboard_usage(zmk_key_t usage) {
         return -EINVAL;
     }
     TOGGLE_KEYBOARD(usage, 0);
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+    --keys_held;
+#endif
     return 0;
 }
 
@@ -123,13 +184,33 @@ static inline bool check_keyboard_usage(zmk_key_t usage) {
         }                                                                                          \
     }
 
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+static zmk_hid_boot_report_t *get_boot_report() {
+    HID_CHECK_ROLLOVER_ERROR();
+#if CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE != HID_BOOT_KEY_LEN
+    boot_report.modifiers = keyboard_report.body.modifiers;
+    int len = CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE < HID_BOOT_KEY_LEN ? CONFIG_ZMK_HID_KEYBOARD_REPORT_SIZE : HID_BOOT_KEY_LEN;
+    memcpy(&boot_report.keys, keyboard_report.body.keys, len);
+    return &boot_report;
+#else
+    return &keyboard_report.body;
+#endif
+}
+#endif
+
 static inline int select_keyboard_usage(zmk_key_t usage) {
     TOGGLE_KEYBOARD(0U, usage);
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+    ++keys_held;
+#endif
     return 0;
 }
 
 static inline int deselect_keyboard_usage(zmk_key_t usage) {
     TOGGLE_KEYBOARD(usage, 0U);
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+    --keys_held;
+#endif
     return 0;
 }
 
@@ -247,10 +328,39 @@ bool zmk_hid_is_pressed(uint32_t usage) {
     return false;
 }
 
-struct zmk_hid_keyboard_report *zmk_hid_get_keyboard_report() {
-    return &keyboard_report;
+void zmk_hid_get_keyboard_report(uint8_t proto, bool include_report_id,
+                                 uint8_t **data, size_t *len) {
+    if (proto == HID_PROTOCOL_REPORT) {
+        if (include_report_id) {
+            *data = (uint8_t*)&keyboard_report;
+            *len = sizeof(struct zmk_hid_keyboard_report);
+        } else {
+            *data = (uint8_t*)&keyboard_report.body;
+            *len = sizeof(struct zmk_hid_keyboard_report_body);
+        }
+        return;
+    }
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+    *data = get_boot_report();
+    *len = sizeof(zmk_hid_boot_report_t);
+#endif
 }
 
-struct zmk_hid_consumer_report *zmk_hid_get_consumer_report() {
-    return &consumer_report;
+struct zmk_hid_keyboard_report_body *zmk_hid_get_keyboard_report_body() {
+    return &keyboard_report.body;
+}
+
+void zmk_hid_get_consumer_report(bool include_report_id,
+                                 uint8_t **data, size_t *len) {
+    if (include_report_id) {
+        *data = (uint8_t*)&consumer_report;
+        *len = sizeof(struct zmk_hid_consumer_report);
+    } else {
+        *data = (uint8_t*)&consumer_report.body;
+        *len = sizeof(struct zmk_hid_consumer_report_body);
+    }
+}
+
+struct zmk_hid_consumer_report_body *zmk_hid_get_consumer_report_body() {
+    return &consumer_report.body;
 }

@@ -71,12 +71,14 @@ int zmk_endpoints_toggle() {
 }
 
 static int send_keyboard_report() {
-    struct zmk_hid_keyboard_report *keyboard_report = zmk_hid_get_keyboard_report();
 
     switch (current_endpoint) {
 #if IS_ENABLED(CONFIG_ZMK_USB)
     case ZMK_ENDPOINT_USB: {
-        int err = zmk_usb_hid_send_report((uint8_t *)keyboard_report, sizeof(*keyboard_report));
+        uint8_t *report;
+        size_t report_length;
+        zmk_hid_get_keyboard_report(zmk_usb_hid_get_protocol(), true, &report, &report_length);
+        int err = zmk_usb_hid_send_report(report, report_length);
         if (err) {
             LOG_ERR("FAILED TO SEND OVER USB: %d", err);
         }
@@ -86,7 +88,7 @@ static int send_keyboard_report() {
 
 #if IS_ENABLED(CONFIG_ZMK_BLE)
     case ZMK_ENDPOINT_BLE: {
-        int err = zmk_hog_send_keyboard_report(&keyboard_report->body);
+        int err = zmk_hog_send_keyboard_report(zmk_hid_get_keyboard_report_body());
         if (err) {
             LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
         }
@@ -101,12 +103,20 @@ static int send_keyboard_report() {
 }
 
 static int send_consumer_report() {
-    struct zmk_hid_consumer_report *consumer_report = zmk_hid_get_consumer_report();
-
     switch (current_endpoint) {
 #if IS_ENABLED(CONFIG_ZMK_USB)
     case ZMK_ENDPOINT_USB: {
-        int err = zmk_usb_hid_send_report((uint8_t *)consumer_report, sizeof(*consumer_report));
+
+#if IS_ENABLED(CONFIG_ZMK_USB_BOOT)
+        if (zmk_usb_hid_get_protocol() == HID_PROTOCOL_BOOT) {
+            return -ENOTSUP;
+        }
+#endif /* IS_ENABLED(CONFIG_ZMK_USB_BOOT) */
+        uint8_t *report;
+        size_t report_length;
+
+        zmk_hid_get_consumer_report(true, &report, &report_length);
+        int err = zmk_usb_hid_send_report(report, report_length);
         if (err) {
             LOG_ERR("FAILED TO SEND OVER USB: %d", err);
         }
@@ -116,7 +126,7 @@ static int send_consumer_report() {
 
 #if IS_ENABLED(CONFIG_ZMK_BLE)
     case ZMK_ENDPOINT_BLE: {
-        int err = zmk_hog_send_consumer_report(&consumer_report->body);
+        int err = zmk_hog_send_consumer_report(zmk_hid_get_consumer_report_body());
         if (err) {
             LOG_ERR("FAILED TO SEND OVER HOG: %d", err);
         }
