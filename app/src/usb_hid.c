@@ -24,47 +24,6 @@ static K_SEM_DEFINE(hid_sem, 1, 1);
 
 static void in_ready_cb(const struct device *dev) { k_sem_give(&hid_sem); }
 
-static void out_ready_cb(const struct device *dev) {
-    size_t report_length;
-    int rc = hid_int_ep_read(hid_dev, NULL, 0, &report_length);
-    if (rc != 0) {
-        LOG_ERR("Failed to read USB report length: %d", rc);
-        return;
-    }
-
-    uint8_t *report = k_malloc(report_length);
-    if (report == NULL) {
-        LOG_ERR("Failed to allocate memory");
-        return;
-    }
-
-    rc = hid_int_ep_read(hid_dev, report, report_length, &report_length);
-    if (rc != 0) {
-        LOG_ERR("Failed to read USB report: %d", rc);
-        goto free;
-    }
-
-    uint8_t report_id = report[0];
-
-    switch (report_id) {
-    case HID_REPORT_ID_LEDS: {
-        if (report_length != sizeof(struct zmk_hid_led_report)) {
-            LOG_ERR("LED report is malformed: length=%d", report_length);
-            goto free;
-        }
-        struct zmk_hid_led_report *led_report = (struct zmk_hid_led_report *)report;
-        zmk_leds_process_report(&led_report->body, ZMK_ENDPOINT_USB, 0);
-        break;
-    }
-    default:
-        LOG_WRN("Unsupported host report: %d", report_id);
-        break;
-    }
-
-free:
-    k_free(report);
-}
-
 #define HID_GET_REPORT_TYPE_MASK 0xff00
 #define HID_GET_REPORT_ID_MASK 0x00ff
 
@@ -99,7 +58,6 @@ static int set_report_cb(const struct device *dev, struct usb_setup_packet *setu
 
 static const struct hid_ops ops = {
     .int_in_ready = in_ready_cb,
-    .int_out_ready = out_ready_cb,
     .set_report = set_report_cb,
 };
 
