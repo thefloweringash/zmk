@@ -548,35 +548,39 @@ int zmk_rgb_underglow_toggle() {
 }
 
 static void zmk_led_write_pixels_work(struct k_work *work);
+static void zmk_rgb_underglow_status_update(struct k_timer *timer);
 
 K_WORK_DEFINE(underglow_write_work, zmk_led_write_pixels_work);
-
-static void zmk_rgb_underglow_status_update(struct k_timer *timer) {
-    k_work_submit(&underglow_write_work);
-}
-
 K_TIMER_DEFINE(underglow_status_update_timer, zmk_rgb_underglow_status_update, NULL);
 
-static void zmk_led_write_pixels_work(struct k_work *work) {
+static void zmk_rgb_underglow_status_update(struct k_timer *timer) {
+    if (!state.status_active)
+        return;
     state.status_animation_step++;
-    if (state.status_animation_step > 4000) {
+    if (state.status_animation_step > (10000 / 25)) {
         state.status_active = false;
         k_timer_stop(&underglow_status_update_timer);
+    }
+    if (!k_work_is_pending(&underglow_write_work))
+        k_work_submit(&underglow_write_work);
+}
+
+static void zmk_led_write_pixels_work(struct k_work *work) {
+    zmk_led_write_pixels();
+    if (!state.status_active) {
         zmk_rgb_set_ext_power();
     }
-    zmk_led_write_pixels();
 }
 
 int zmk_rgb_underglow_status() {
-
-    if (! state.status_active) {
-        state.status_active = true;
+    if (!state.status_active) {
         state.status_animation_step = 0;
     } else {
-        if (state.status_animation_step > (500/25)) {
-            state.status_animation_step = 500/25;
+        if (state.status_animation_step > (500 / 25)) {
+            state.status_animation_step = 500 / 25;
         }
     }
+    state.status_active = true;
     zmk_led_write_pixels();
     zmk_rgb_set_ext_power();
 
