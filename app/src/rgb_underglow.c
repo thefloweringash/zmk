@@ -525,6 +525,12 @@ int zmk_rgb_set_ext_power() {
         c_power = 0;
     }
     int desired_state = state.on || state.status_active;
+    // force power off, when battery low (<10%)
+    if (desired_state) {
+        if (zmk_battery_state_of_charge() < 10) {
+            desired_state = false;
+        }
+    }
     if (desired_state && !c_power) {
         int rc = ext_power_enable(ext_power);
         if (rc != 0) {
