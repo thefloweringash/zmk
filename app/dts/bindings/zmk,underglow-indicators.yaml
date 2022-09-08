@@ -30,3 +30,6 @@ properties:
   usb-state:
     type: int
     required: true
+  output-fallback:
+    type: int
+    required: true

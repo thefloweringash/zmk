@@ -72,6 +72,7 @@
 		scrolllock  = <10>;
 		ble-state   = <3 4 0 1>;
 		usb-state   = <5>;
+		output-fallback = <15>;
 	};
 };
 

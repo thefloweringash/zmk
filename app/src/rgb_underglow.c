@@ -14,6 +14,8 @@
 
 #include <zmk/battery.h>
 #include <zmk/ble.h>
+#include <zmk/endpoints.h>
+#include <zmk/keymap.h>
 #include <zmk/led_indicators.h>
 #include <zmk/usb.h>
 
@@ -25,7 +27,6 @@
 #include <zmk/rgb_underglow.h>
 
 #include <zmk/activity.h>
-#include <zmk/usb.h>
 #include <zmk/event_manager.h>
 #include <zmk/events/activity_state_changed.h>
 #include <zmk/events/usb_conn_state_changed.h>
@@ -275,9 +276,19 @@ static int zmk_led_generate_status() {
         b : 0
     };
     const struct led_rgb green = {r : 0, g : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX, b : 0};
+    const struct led_rgb dull_green = {
+        r : 0,
+        g : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX,
+        b : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX / 2
+    };
     const struct led_rgb purple = {
         r : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX,
         g : 0,
+        b : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX
+    };
+    const struct led_rgb white = {
+        r : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX,
+        g : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX,
         b : CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX
     };
 
@@ -288,6 +299,7 @@ static int zmk_led_generate_status() {
     zmk_led_battery_level(zmk_battery_state_of_peripheral_charge(), underglow_bat_rhs,
                           DT_PROP_LEN(UNDERGLOW_INDICATORS, bat_rhs));
 
+    // CAPSLOCK/NUMLOCK/SCROLLOCK STATUS
     zmk_leds_flags_t led_flags = zmk_leds_get_current_flags();
 
     if (led_flags & ZMK_LED_CAPSLOCK_BIT)
@@ -297,29 +309,64 @@ static int zmk_led_generate_status() {
     if (led_flags & ZMK_LED_SCROLLLOCK_BIT)
         status_pixels[DT_PROP(UNDERGLOW_INDICATORS, scrolllock)] = red;
 
-    for (uint8_t i = 0; i < DT_PROP_LEN(UNDERGLOW_INDICATORS, ble_state); i++) {
-        int8_t status = zmk_ble_profile_status(i);
-        int ble_pixel = underglow_ble_state[i];
-        if (status == 2) { // connected
-            status_pixels[ble_pixel] = yellow;
-        } else if (status == 1) { // paired
-            status_pixels[ble_pixel] = green;
-        } else if (status == 0) { // unused
-            status_pixels[ble_pixel] = red;
-        }
-    }
-
+    // LAYER STATUS
     for (uint8_t i = 0; i < DT_PROP_LEN(UNDERGLOW_INDICATORS, layer_state); i++) {
         if (zmk_keymap_layer_active(i))
             status_pixels[underglow_layer_state[i]] = purple;
     }
-#endif
+
+    // ENDPOINT_STATUS
+    // replicating logic in endpoints.c / get_selected_endpoint()
+    enum zmk_endpoint active_endpoint = zmk_endpoints_selected();
+    bool ble_ready = zmk_ble_active_profile_is_connected();
+    bool usb_ready = zmk_usb_is_hid_ready();
+    bool output_fallback = false;
+
+    if (ble_ready && usb_ready) {
+        // selected endpoint is active
+    } else if (ble_ready) {
+        if (active_endpoint != ZMK_ENDPOINT_BLE)
+            output_fallback = true;
+        active_endpoint = ZMK_ENDPOINT_BLE;
+    } else if (usb_ready) {
+        if (active_endpoint != ZMK_ENDPOINT_USB)
+            output_fallback = true;
+        active_endpoint = ZMK_ENDPOINT_USB;
+    } else {
+        active_endpoint = -1;
+    }
+
+    if (output_fallback)
+        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, output_fallback)] = red;
+
+    int active_ble_profile_index = zmk_ble_active_profile_index();
+    for (uint8_t i = 0; i < DT_PROP_LEN(UNDERGLOW_INDICATORS, ble_state); i++) {
+        int8_t status = zmk_ble_profile_status(i);
+        int ble_pixel = underglow_ble_state[i];
+        if (status == 2 && active_endpoint == ZMK_ENDPOINT_BLE &&
+            active_ble_profile_index == i) { // connected AND active
+            status_pixels[ble_pixel] = white;
+        } else if (status == 2) { // connected
+            status_pixels[ble_pixel] = dull_green;
+        } else if (status == 1) { // paired
+            status_pixels[ble_pixel] = red;
+        } else if (status == 0) { // unused
+            status_pixels[ble_pixel] = purple;
+        }
+    }
 
     int usb_state = zmk_usb_get_conn_state();
-    if (usb_state != ZMK_USB_CONN_NONE) {
-        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, usb_state)] =
-            usb_state == ZMK_USB_CONN_HID ? yellow : red;
+    if (usb_state == ZMK_USB_CONN_HID &&
+        active_endpoint == ZMK_ENDPOINT_USB) { // connected AND active
+        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, usb_state)] = white;
+    } else if (usb_state == ZMK_USB_CONN_HID) { // connected
+        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, usb_state)] = dull_green;
+    } else if (usb_state == ZMK_USB_CONN_POWERED) { // powered
+        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, usb_state)] = red;
+    } else if (usb_state == ZMK_USB_CONN_NONE) { // disconnected
+        status_pixels[DT_PROP(UNDERGLOW_INDICATORS, usb_state)] = purple;
     }
+#endif
 
     int16_t blend = 256;
     if (state.status_animation_step < (500 / 25)) {
