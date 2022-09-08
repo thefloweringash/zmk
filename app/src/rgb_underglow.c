@@ -340,7 +340,8 @@ static int zmk_led_generate_status() {
         status_pixels[DT_PROP(UNDERGLOW_INDICATORS, output_fallback)] = red;
 
     int active_ble_profile_index = zmk_ble_active_profile_index();
-    for (uint8_t i = 0; i < DT_PROP_LEN(UNDERGLOW_INDICATORS, ble_state); i++) {
+    for (uint8_t i = 0;
+         i < MIN(ZMK_BLE_PROFILE_COUNT, DT_PROP_LEN(UNDERGLOW_INDICATORS, ble_state)); i++) {
         int8_t status = zmk_ble_profile_status(i);
         int ble_pixel = underglow_ble_state[i];
         if (status == 2 && active_endpoint == ZMK_ENDPOINT_BLE &&
