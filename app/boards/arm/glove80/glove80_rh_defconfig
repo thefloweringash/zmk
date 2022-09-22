@@ -48,12 +48,6 @@ CONFIG_ZMK_RGB_UNDERGLOW_BRT_MIN=4
 # computer. WARRANTY IS VOID IF BRT_MAX SET ABOVE 80.
 CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX=80
 
-# [SC] These are additional configurations that need to be implmented
-#CONFIG_ZMK_RGB_UNDERGLOW_USB_CONNECTED_BRT_MAX=80 # If your USB charger is not capable of providing 900mA, then this should be changed to a smaller number
-#CONFIG_ZMK_RGB_UNDERGLOW_CONSERVE_BAT_PERCENT=30 # Activate undeglow battery conservation mode at < 30% battery
-#CONFIG_ZMK_RGB_UNDERGLOW_CONSERVE_BAT_BRT_MAX=16 # Maximum brightness at battery conservation mode is 16
-#CONFIG_ZMK_RGB_UNDERGLOW_DISABLE_BAT_PERCENT=10 # Disable underglow at < 10% battery
-
 CONFIG_ZMK_RGB_UNDERGLOW_HUE_START=285
 CONFIG_ZMK_RGB_UNDERGLOW_SAT_START=75
 CONFIG_ZMK_RGB_UNDERGLOW_BRT_START=16
