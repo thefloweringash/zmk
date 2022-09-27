@@ -72,6 +72,8 @@ static struct rgb_underglow_state state;
 static const struct device *ext_power;
 #endif
 
+int zmk_rgb_set_ext_power();
+
 static struct zmk_led_hsb hsb_scale_min_max(struct zmk_led_hsb hsb) {
     hsb.b = CONFIG_ZMK_RGB_UNDERGLOW_BRT_MIN +
             (CONFIG_ZMK_RGB_UNDERGLOW_BRT_MAX - CONFIG_ZMK_RGB_UNDERGLOW_BRT_MIN) * hsb.b / BRT_MAX;
@@ -332,28 +334,9 @@ static int zmk_led_generate_status() {
             status_pixels[underglow_layer_state[i]] = purple;
     }
 
-    // ENDPOINT_STATUS
-    // replicating logic in endpoints.c / get_selected_endpoint()
     enum zmk_endpoint active_endpoint = zmk_endpoints_selected();
-    bool ble_ready = zmk_ble_active_profile_is_connected();
-    bool usb_ready = zmk_usb_is_hid_ready();
-    bool output_fallback = false;
 
-    if (ble_ready && usb_ready) {
-        // selected endpoint is active
-    } else if (ble_ready) {
-        if (active_endpoint != ZMK_ENDPOINT_BLE)
-            output_fallback = true;
-        active_endpoint = ZMK_ENDPOINT_BLE;
-    } else if (usb_ready) {
-        if (active_endpoint != ZMK_ENDPOINT_USB)
-            output_fallback = true;
-        active_endpoint = ZMK_ENDPOINT_USB;
-    } else {
-        active_endpoint = -1;
-    }
-
-    if (output_fallback)
+    if (!zmk_endpoints_preferred_is_active())
         status_pixels[DT_PROP(UNDERGLOW_INDICATORS, output_fallback)] = red;
 
     int active_ble_profile_index = zmk_ble_active_profile_index();
