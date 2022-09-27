@@ -15,6 +15,7 @@
 #include <zmk/keymap.h>
 #include <zmk/led_indicators.h>
 #include <zmk/event_manager.h>
+#include <zmk/rgb_underglow.h>
 
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
@@ -84,6 +85,11 @@ static int get_report_cb(const struct device *dev, struct usb_setup_packet *setu
     return 0;
 }
 
+struct set_color_report {
+    uint8_t report_id;
+    struct zmk_led_hsb color;
+};
+
 static int set_report_cb(const struct device *dev, struct usb_setup_packet *setup, int32_t *len,
                          uint8_t **data) {
     if ((setup->wValue & HID_GET_REPORT_TYPE_MASK) != HID_REPORT_TYPE_OUTPUT) {
@@ -94,12 +100,21 @@ static int set_report_cb(const struct device *dev, struct usb_setup_packet *setu
 
     switch (setup->wValue & HID_GET_REPORT_ID_MASK) {
     case HID_REPORT_ID_LEDS:
-        if (*len != sizeof(struct zmk_hid_led_report)) {
-            LOG_ERR("LED set report is malformed: length=%d", *len);
-        } else {
+        LOG_DBG("handling led report, len=%d", *len);
+        if (*len == sizeof(struct zmk_hid_led_report)) {
+            LOG_ERR("setting indicator");
             struct zmk_hid_led_report *report = (struct zmk_hid_led_report *)*data;
             zmk_leds_process_report(&report->body, ZMK_ENDPOINT_USB, 0);
         }
+        else if (*len == sizeof(struct set_color_report)) {
+            LOG_ERR("setting backlight");
+            struct set_color_report *report = (struct set_color_report *)*data;
+            zmk_rgb_underglow_set_hsb(report->color);
+        }
+        else {
+            LOG_ERR("no report matched");
+        }
+
         break;
     default:
         LOG_ERR("Invalid report ID %d requested", setup->wValue & HID_GET_REPORT_ID_MASK);

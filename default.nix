@@ -3,7 +3,7 @@ let
   inherit (pkgs) newScope;
   inherit (pkgs.lib) makeScope;
 
-  combine_uf2 = a: b: pkgs.runCommandNoCC "combined_${a.name}_${b.name}" {}
+  combine_uf2 = a: b: pkgs.runCommand "combined_${a.name}_${b.name}" {}
   ''
     mkdir -p $out
     cat ${a}/zmk.uf2 ${b}/zmk.uf2 > $out/glove80.uf2

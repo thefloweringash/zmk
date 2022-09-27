@@ -210,12 +210,12 @@ static enum zmk_endpoint get_selected_endpoint() {
             return preferred_endpoint;
         }
 
-        LOG_DBG("Only BLE is ready.");
+        // LOG_DBG("Only BLE is ready.");
         return ZMK_ENDPOINT_BLE;
     }
 
     if (is_usb_ready()) {
-        LOG_DBG("Only USB is ready.");
+        // LOG_DBG("Only USB is ready.");
         return ZMK_ENDPOINT_USB;
     }
 
