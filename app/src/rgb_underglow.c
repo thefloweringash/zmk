@@ -183,6 +183,7 @@ static void zmk_led_write_pixels() {
     static struct led_rgb led_buffer[STRIP_NUM_PIXELS];
     int bat0 = zmk_battery_state_of_charge();
     int blend = 0;
+    int reset_ext_power = 0;
     if (state.status_active) {
         blend = zmk_led_generate_status();
     }
@@ -195,6 +196,14 @@ static void zmk_led_write_pixels() {
     // battery below minimum charge
     if (bat0 < 10) {
         memset(pixels, 0, sizeof(struct led_rgb) * STRIP_NUM_PIXELS);
+        if (state.on) {
+            int c_power = ext_power_get(ext_power);
+            if (c_power && !state.status_active) {
+                // power is on, RGB underglow is on, but battery is too low
+                state.on = false;
+                reset_ext_power = true;
+            }
+        }
     }
 
     if (blend == 0) {
@@ -228,6 +237,10 @@ static void zmk_led_write_pixels() {
     }
 
     led_strip_update_rgb(led_strip, led_buffer, STRIP_NUM_PIXELS);
+
+    if (reset_ext_power) {
+        zmk_rgb_set_ext_power();
+    }
 }
 
 #define UNDERGLOW_INDICATORS DT_PATH(underglow_indicators)
