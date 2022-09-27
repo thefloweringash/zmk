@@ -192,6 +192,10 @@ static void zmk_led_write_pixels() {
         led_strip_update_rgb(led_strip, pixels, STRIP_NUM_PIXELS);
         return;
     }
+    // battery below minimum charge
+    if (bat0 < 10) {
+        memset(pixels, 0, sizeof(struct led_rgb) * STRIP_NUM_PIXELS);
+    }
 
     if (blend == 0) {
         for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
@@ -219,7 +223,7 @@ static void zmk_led_write_pixels() {
         for (int i = 0; i < STRIP_NUM_PIXELS; i++) {
             led_buffer[i].r = led_buffer[i].r >> 1;
             led_buffer[i].g = led_buffer[i].g >> 1;
-            led_buffer[i].b = led_buffer[i].b >> 2;
+            led_buffer[i].b = led_buffer[i].b >> 1;
         }
     }
 
@@ -526,7 +530,7 @@ int zmk_rgb_set_ext_power() {
     }
     int desired_state = state.on || state.status_active;
     // force power off, when battery low (<10%)
-    if (desired_state) {
+    if (state.on && !state.status_active) {
         if (zmk_battery_state_of_charge() < 10) {
             desired_state = false;
         }
